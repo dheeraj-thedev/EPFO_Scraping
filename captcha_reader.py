@@ -10,7 +10,6 @@ from collections import deque
 import cv2 as cv
 import pytesseract as pts
 from PIL import Image
-from matplotlib import pyplot as plt
 import numpy as np
 
 COL = X = 0
@@ -50,7 +49,6 @@ def get_adjacent_cells(cell, matrix):
     return adjacent
 
 
-
 def get_islands(matrix, magic_no, xordered = True):
     visited = set()
 
@@ -68,7 +66,6 @@ def get_islands(matrix, magic_no, xordered = True):
         return island_set
 
     islands = []
-
     for ri, row in enumerate(matrix):
         for ci, col in enumerate(row):
             island_set = __get_islands((ci, ri), matrix)
@@ -92,15 +89,6 @@ def index_to_img(index_list):
         img_matrix[index[ROW]][index[COL]] = 1
     return img_matrix
 
-
-def render_chars(chars):
-    fig, axs = plt.subplots(1,len(chars))
-    for ix, char in enumerate(chars):
-        axs[ix].imshow(char)
-    plt.subplot_tool()
-    plt.show()
-
-
 def chars_to_string(chars):
     char_l = []
     for char in chars:
@@ -120,7 +108,4 @@ def decode(filename):
     thresh = cv.dilate(thresh, kernel)
     char_islands = get_islands(thresh, 0)
     mchars = [index_to_img(c) for c in char_islands]
-    render_chars(mchars)
     return chars_to_string(mchars)
-
-"https://unifiedportal-epfo.epfindia.gov.in/publicPortal/no-auth/captcha/createCaptcha?_HDIV_STATE_=2-3-4AD84E5016B4536AD2ACB5309ADA4771"

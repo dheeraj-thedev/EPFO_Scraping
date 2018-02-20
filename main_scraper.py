@@ -2,6 +2,7 @@ import requests
 from shutil import copyfileobj
 from bs4 import BeautifulSoup as soup
 from captcha_reader import decode
+import json
 INITIAL_URL = "https://unifiedportal-epfo.epfindia.gov.in/publicPortal/no-auth/misReport/home/loadEstSearchHome/"
 
 
@@ -39,7 +40,7 @@ def post_search_establishment_request(my_soup, session, est_name, est_code=""):
         print(count)
         captcha = generate_and_read_captcha(my_soup, session)
         print(captcha)
-        response = session.post(my_url, data={"EstName": est_name, "EstCode": est_code, "captcha": captcha})
+        response = session.post(my_url, data=json.dumps({"EstName": est_name, "EstCode": est_code, "captcha": captcha}))
         print(response.text)
     return response
 

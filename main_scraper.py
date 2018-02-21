@@ -33,10 +33,8 @@ def post_search_establishment_request(my_soup, session, est_name, est_code=""):
     est_req = my_soup.find("div", {"class": "col-sm-3 col-md-2 col-lg-2"}).input['onclick'].split("'")[1]
     my_url = get_full_url(est_req)
     response = None
-    count = 0
     # print(session.cookies)
     while response is None:
-        count += 1
         captcha = generate_and_read_captcha(my_soup, session)
         response = session.post(my_url, data=json.dumps({"EstName": est_name, "EstCode": est_code, "captcha": captcha}),
                                 headers={'Content-Type': 'application/json'})
@@ -67,6 +65,16 @@ def which_index():
     return input("Which of the companies (0-indexed) would you like to check?\n")
 
 
+def post_get_company_details(r, session, company_code):
+    my_soup = soup(r.text, "html.parser")
+    my_url = get_full_url(my_soup.find_all("a", href=True)[0]["onclick"].split(",'")[1][:-1])
+    print(my_url)
+    response = session.post(my_url, data=json.dumps({"EstId": company_code}), headers={'Content-Type': 'application/json'})
+    # print(response.text)
+    return response
+
+
+
 def main():
     pass
 
@@ -75,17 +83,18 @@ if __name__ == '__main__':
     s = requests.Session()
     my_soup = get_soup(s, INITIAL_URL)
     company_list = []
-    company = prompt_company()
+    # company = prompt_company()
     while not company_list:  # in case the captcha reader fails
-        r = post_search_establishment_request(my_soup, s, company)
-    # my_soup = soup(r.text, "html.parser")
-    # print(my_soup.find_all("a", href=True)[0]["name"])
-    # print(my_soup.find_all("a", href=True)[0]["onclick"].split(",'")[1][:-1])
+        # r = post_search_establishment_request(my_soup, s, company)
+        r = post_search_establishment_request(my_soup, s, "google")
         company_list = get_company_list(r)
     # employee = prompt_employee_name()
-    comp = None
-    while comp is None:
-        try:
-            comp = company_list[int(which_index())]
-        except IndexError:
-            print("Your index was out of bounds. Enter a proper one, under", str(len(company_list)), ".")
+    # code = None
+    # while code is None:
+    #     try:
+    #         code = company_list[int(which_index())]
+    #     except IndexError:
+    #         print("Your index was out of bounds. Enter a proper one, under", str(len(company_list)), ".")
+    code = company_list[0]
+    company_details = post_get_company_details(r, s, code)
+

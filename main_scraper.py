@@ -32,7 +32,6 @@ def get_soup(session, url):
 def post_search_establishment_request(my_soup, session, est_name, est_code=""):
     est_req = my_soup.find("div", {"class": "col-sm-3 col-md-2 col-lg-2"}).input['onclick'].split("'")[1]
     my_url = get_full_url(est_req)
-    print(my_url)
     response = None
     count = 0
     # print(session.cookies)
@@ -41,19 +40,31 @@ def post_search_establishment_request(my_soup, session, est_name, est_code=""):
         captcha = generate_and_read_captcha(my_soup, session)
         response = session.post(my_url, data=json.dumps({"EstName": est_name, "EstCode": est_code, "captcha": captcha}),
                                 headers={'Content-Type': 'application/json'})
-        # print(response.request.headers)
-        # print(response.request.body)
-        # print(response.text)
     return response
 
 
 def get_company_list(establishment_response):
     my_soup = soup(establishment_response.text, "html.parser")
     name_list = []
-    for org in my_soup.find_all("a",href=True):
+    for org in my_soup.find_all("a", href=True):
         name_list.append(org["name"])
+    if name_list:
+        print("There are", len(name_list), "companies registered with the given name. "
+                                           "Following are their ID numbers.")
+        print(name_list)
     return name_list
 
+
+def prompt_company():
+    return input("Which company do you want to search for? The name isn't case sensitive.\n")
+
+
+def prompt_employee_name():
+    return input("What is the required employee's name?\n")
+
+
+def which_index():
+    return input("Which of the companies (0-indexed) would you like to check?\n")
 
 
 def main():
@@ -63,8 +74,18 @@ def main():
 if __name__ == '__main__':
     s = requests.Session()
     my_soup = get_soup(s, INITIAL_URL)
-    r = post_search_establishment_request(my_soup, s, "google")
+    company_list = []
+    company = prompt_company()
+    while not company_list:  # in case the captcha reader fails
+        r = post_search_establishment_request(my_soup, s, company)
     # my_soup = soup(r.text, "html.parser")
     # print(my_soup.find_all("a", href=True)[0]["name"])
     # print(my_soup.find_all("a", href=True)[0]["onclick"].split(",'")[1][:-1])
-    print(get_company_list(r))
+        company_list = get_company_list(r)
+    # employee = prompt_employee_name()
+    comp = None
+    while comp is None:
+        try:
+            comp = company_list[int(which_index())]
+        except IndexError:
+            print("Your index was out of bounds. Enter a proper one, under", str(len(company_list)), ".")

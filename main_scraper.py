@@ -74,6 +74,11 @@ def post_get_company_details(r, session, company_code):
     return response
 
 
+def view_payment_details(details, session):
+    detail_soup = soup(details.text, "html.parser")
+    my_url = get_full_url(detail_soup.find("a", href=True)["onclick"].split("'")[1])
+    final = session.get(my_url)
+    print(final.text)
 
 def main():
     pass
@@ -97,4 +102,6 @@ if __name__ == '__main__':
     #         print("Your index was out of bounds. Enter a proper one, under", str(len(company_list)), ".")
     code = company_list[0]
     company_details = post_get_company_details(r, s, code)
+    view_payment_details(company_details, s)
+
 

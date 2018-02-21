@@ -35,14 +35,25 @@ def post_search_establishment_request(my_soup, session, est_name, est_code=""):
     print(my_url)
     response = None
     count = 0
+    # print(session.cookies)
     while response is None:
         count += 1
-        print(count)
         captcha = generate_and_read_captcha(my_soup, session)
-        print(captcha)
-        response = session.post(my_url, data=json.dumps({"EstName": est_name, "EstCode": est_code, "captcha": captcha}))
-        print(response.text)
+        response = session.post(my_url, data=json.dumps({"EstName": est_name, "EstCode": est_code, "captcha": captcha}),
+                                headers={'Content-Type': 'application/json'})
+        # print(response.request.headers)
+        # print(response.request.body)
+        # print(response.text)
     return response
+
+
+def get_company_list(establishment_response):
+    my_soup = soup(establishment_response.text, "html.parser")
+    name_list = []
+    for org in my_soup.find_all("a",href=True):
+        name_list.append(org["name"])
+    return name_list
+
 
 
 def main():
@@ -52,5 +63,8 @@ def main():
 if __name__ == '__main__':
     s = requests.Session()
     my_soup = get_soup(s, INITIAL_URL)
-    print(s.cookies)
     r = post_search_establishment_request(my_soup, s, "google")
+    # my_soup = soup(r.text, "html.parser")
+    # print(my_soup.find_all("a", href=True)[0]["name"])
+    # print(my_soup.find_all("a", href=True)[0]["onclick"].split(",'")[1][:-1])
+    print(get_company_list(r))

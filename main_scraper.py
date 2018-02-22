@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup as soup
 from captcha_reader import decode
 import json
 import prompts as pr
+import month_payment_sorter
 INITIAL_URL = "https://unifiedportal-epfo.epfindia.gov.in/publicPortal/no-auth/misReport/home/loadEstSearchHome/"
 
 
@@ -69,6 +70,26 @@ def view_payment_details(details, session):
     return payment
 
 
+def get_last_three_months_payment(payment_details):
+    payment_soup = soup(payment_details.text, "html.parser")
+    # the data here is stored in a pretty ugly way, need to sort
+    parsed_list = []
+    for row in payment_soup.find_all("tr")[1:]:  # first row is the title row
+        date = row.find_all("td")[3].find(text=True).split("-")
+        pay_link = row.find("a", href=True)["onclick"].split("'")[1]
+        my_trrn = row.find_all("td")[0].find(text=True)
+        if int(row.find("a", href=True).contents[0]) > 5:
+            parsed_list.append((date[1], date[0], pay_link, my_trrn))
+    return month_payment_sorter.sort_month_and_payment(parsed_list)[-3:]
+
+
+def get_payment_table(session, link, trrn):
+    my_url = get_full_url(link)
+    print(trrn)
+    table = session.post(my_url, data=json.dumps({"Trrn": trrn}), headers={'Content-Type': 'application/json'})
+    return table.text
+
+
 def main():
     pass
 
@@ -92,9 +113,7 @@ if __name__ == '__main__':
     code = company_list[0]
     company_details = post_get_company_details(r, s, code)
     payment_details = view_payment_details(company_details, s)
-    payment_soup = soup(payment_details.text, "html.parser")
-    # the data here is stored in a pretty ugly way, need to sort
-    for row in payment_soup.find_all("tr")[1:]:  # first row is the title row
-        print(row.find_all("td")[3].find(text=True))
-        print(row.find("a", href=True)["onclick"].split("'")[1])
+    last_payment = get_last_three_months_payment(payment_details)[2]
+    print(get_payment_table(s,last_payment[2], last_payment[3]))
+
 

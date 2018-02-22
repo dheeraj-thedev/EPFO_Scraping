@@ -6,16 +6,5 @@ def get_month_number(month):
     return month_to_num_map[month]
 
 
-def month_sort(month_1, month_2):
-    m1 = get_month_number(month_1); m2 = get_month_number(month_2)
-    if m1 > m2:
-        return 1
-    if m1 < m2:
-        return -1
-    if m1 == m2:
-        return 0
-
-# def
-
-
-# print(month_sort("JAN", "FEB"))
+def sort_month_and_payment(tuple_list):
+    return sorted(tuple_list, key=lambda y: (y[0], get_month_number(y[1])))

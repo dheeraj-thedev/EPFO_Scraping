@@ -1,8 +1,8 @@
 import requests
-from shutil import copyfileobj
 from bs4 import BeautifulSoup as soup
 from captcha_reader import decode
 import json
+import prompts as pr
 INITIAL_URL = "https://unifiedportal-epfo.epfindia.gov.in/publicPortal/no-auth/misReport/home/loadEstSearchHome/"
 
 
@@ -53,32 +53,21 @@ def get_company_list(establishment_response):
     return name_list
 
 
-def prompt_company():
-    return input("Which company do you want to search for? The name isn't case sensitive.\n")
-
-
-def prompt_employee_name():
-    return input("What is the required employee's name?\n")
-
-
-def which_index():
-    return input("Which of the companies (0-indexed) would you like to check?\n")
-
 
 def post_get_company_details(r, session, company_code):
     my_soup = soup(r.text, "html.parser")
     my_url = get_full_url(my_soup.find_all("a", href=True)[0]["onclick"].split(",'")[1][:-1])
     print(my_url)
     response = session.post(my_url, data=json.dumps({"EstId": company_code}), headers={'Content-Type': 'application/json'})
-    # print(response.text)
     return response
 
 
 def view_payment_details(details, session):
     detail_soup = soup(details.text, "html.parser")
     my_url = get_full_url(detail_soup.find("a", href=True)["onclick"].split("'")[1])
-    final = session.get(my_url)
-    print(final.text)
+    payment = session.get(my_url)
+    return payment
+
 
 def main():
     pass
@@ -88,20 +77,24 @@ if __name__ == '__main__':
     s = requests.Session()
     my_soup = get_soup(s, INITIAL_URL)
     company_list = []
-    # company = prompt_company()
+    # company = pr.prompt_company()
     while not company_list:  # in case the captcha reader fails
         # r = post_search_establishment_request(my_soup, s, company)
         r = post_search_establishment_request(my_soup, s, "google")
         company_list = get_company_list(r)
-    # employee = prompt_employee_name()
+    # employee = pr.prompt_employee_name()
     # code = None
     # while code is None:
     #     try:
-    #         code = company_list[int(which_index())]
+    #         code = company_list[int(pr.which_index())]
     #     except IndexError:
     #         print("Your index was out of bounds. Enter a proper one, under", str(len(company_list)), ".")
     code = company_list[0]
     company_details = post_get_company_details(r, s, code)
-    view_payment_details(company_details, s)
-
+    payment_details = view_payment_details(company_details, s)
+    payment_soup = soup(payment_details.text, "html.parser")
+    # the data here is stored in a pretty ugly way, need to sort
+    for row in payment_soup.find_all("tr")[1:]:  # first row is the title row
+        print(row.find_all("td")[3].find(text=True))
+        print(row.find("a", href=True)["onclick"].split("'")[1])
 

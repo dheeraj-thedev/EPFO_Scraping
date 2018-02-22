@@ -1,9 +1,10 @@
 import requests
 from bs4 import BeautifulSoup as soup
-from captcha_reader import decode
+from misc.captcha_reader import decode
 import json
-import prompts as pr
-import month_payment_sorter
+from misc import prompts as pr, month_payment_sorter
+from file_manager import file_maker as fm
+
 INITIAL_URL = "https://unifiedportal-epfo.epfindia.gov.in/publicPortal/no-auth/misReport/home/loadEstSearchHome/"
 
 
@@ -11,7 +12,7 @@ def generate_and_read_captcha(my_soup, session):
     img_src = my_soup.find("div", {"id": "captchaImg"}).find("img")['src']
     my_url = get_full_url(img_src)
     response = session.get(my_url, stream=True)
-    filename = "current_captcha.png"
+    filename = "misc/current_captcha.png"
     with open(filename,
               "wb") as f:  # I know that "wb" and "w" do the same thing on mac, this is for universality
         f.write(response.content)
@@ -47,24 +48,24 @@ def get_company_list(establishment_response):
     name_list = []
     for org in my_soup.find_all("a", href=True):
         name_list.append(org["name"])
-    if name_list:
-        print("There are", len(name_list), "companies registered with the given name. "
-                                           "Following are their ID numbers.")
-        print(name_list)
+    # if name_list:
+        # print("There are", len(name_list), "companies registered with the given name. "
+        #                                    "Following are their ID numbers.")
+        # print(name_list)
     return name_list
-
 
 
 def post_get_company_details(r, session, company_code):
     my_soup = soup(r.text, "html.parser")
     my_url = get_full_url(my_soup.find_all("a", href=True)[0]["onclick"].split(",'")[1][:-1])
-    print(my_url)
+    # print(my_url)
     response = session.post(my_url, data=json.dumps({"EstId": company_code}), headers={'Content-Type': 'application/json'})
     return response
 
 
 def view_payment_details(details, session):
     detail_soup = soup(details.text, "html.parser")
+    # print(detail_soup)
     my_url = get_full_url(detail_soup.find("a", href=True)["onclick"].split("'")[1])
     payment = session.get(my_url)
     return payment
@@ -85,35 +86,50 @@ def get_last_three_months_payment(payment_details):
 
 def get_payment_table(session, link, trrn):
     my_url = get_full_url(link)
-    print(trrn)
     table = session.post(my_url, data=json.dumps({"Trrn": trrn}), headers={'Content-Type': 'application/json'})
-    return table.text
+    return table
 
 
-def main():
-    pass
+def get_name_list(payment_table):
+    table_soup = soup(payment_table.text, "html.parser")
+    name_list = []
+    for row in table_soup.find_all("tr")[1:]:  # first line is title line
+        name_list.append((row.find("td").find(text=True)))
+    return name_list
+
+
+def get_len_of_comp_list(company_name):
+    sesh = requests.Session()
+    my_soup = get_soup(sesh, INITIAL_URL)
+    company_list = []
+    while not company_list:  # in case the captcha reader fails
+        r = post_search_establishment_request(my_soup, sesh, company_name)
+        company_list = get_company_list(r)
+    return len(company_list)
+
+
+def make_last_three_tables_for_company(company_name):
+    length = get_len_of_comp_list(company_name)
+    for i in range(0, length):
+        sesh = requests.Session()  # have to make a new session every single time or else the prog fails
+        my_soup = get_soup(sesh, INITIAL_URL)
+        company_list = []
+        while not company_list:  # in case the captcha reader fails
+            r = post_search_establishment_request(my_soup, sesh, company_name)
+            company_list = get_company_list(r)
+        code = company_list[i]
+        company_details = post_get_company_details(r, sesh, code)
+        payment_details = view_payment_details(company_details, sesh)
+        for req_payment in get_last_three_months_payment(payment_details):
+            month = req_payment[1]
+            year = req_payment[0]
+            payment_table = get_payment_table(sesh, req_payment[2], req_payment[3])
+            name_list = get_name_list(payment_table)
+            fm.write_new_table(company_name, code, month, year, name_list)
 
 
 if __name__ == '__main__':
-    s = requests.Session()
-    my_soup = get_soup(s, INITIAL_URL)
-    company_list = []
-    # company = pr.prompt_company()
-    while not company_list:  # in case the captcha reader fails
-        # r = post_search_establishment_request(my_soup, s, company)
-        r = post_search_establishment_request(my_soup, s, "google")
-        company_list = get_company_list(r)
-    # employee = pr.prompt_employee_name()
-    # code = None
-    # while code is None:
-    #     try:
-    #         code = company_list[int(pr.which_index())]
-    #     except IndexError:
-    #         print("Your index was out of bounds. Enter a proper one, under", str(len(company_list)), ".")
-    code = company_list[0]
-    company_details = post_get_company_details(r, s, code)
-    payment_details = view_payment_details(company_details, s)
-    last_payment = get_last_three_months_payment(payment_details)[2]
-    print(get_payment_table(s,last_payment[2], last_payment[3]))
+    make_last_three_tables_for_company(pr.prompt_company())
+
 
 

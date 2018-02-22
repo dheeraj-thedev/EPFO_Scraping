@@ -9,3 +9,7 @@ def prompt_employee_name():
 
 def which_index():
     return input("Which of the companies (0-indexed) would you like to check?\n")
+
+
+def prompt_month():
+    return input("Which of the months do you want to search in? Enter a number from 0 to 2.\n")

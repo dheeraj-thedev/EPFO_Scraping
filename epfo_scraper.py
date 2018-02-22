@@ -2,7 +2,7 @@ import requests
 from bs4 import BeautifulSoup as soup
 from misc.captcha_reader import decode
 import json
-from misc import prompts as pr, month_payment_sorter
+from misc import month_payment_sorter
 from file_manager import file_maker as fm
 
 INITIAL_URL = "https://unifiedportal-epfo.epfindia.gov.in/publicPortal/no-auth/misReport/home/loadEstSearchHome/"
@@ -126,10 +126,3 @@ def make_last_three_tables_for_company(company_name):
             payment_table = get_payment_table(sesh, req_payment[2], req_payment[3])
             name_list = get_name_list(payment_table)
             fm.write_new_table(company_name, code, month, year, name_list)
-
-
-if __name__ == '__main__':
-    make_last_three_tables_for_company(pr.prompt_company())
-
-
-

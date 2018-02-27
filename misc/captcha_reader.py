@@ -89,6 +89,7 @@ def index_to_img(index_list):
         img_matrix[index[ROW]][index[COL]] = 1
     return img_matrix
 
+
 def chars_to_string(chars):
     char_l = []
     for char in chars:
